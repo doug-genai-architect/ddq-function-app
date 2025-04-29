@@ -1,0 +1,23 @@
+# Core function requirements
+azure-functions>=1.15.0
+
+# OpenAI API
+openai>=1.0.0
+
+# Azure Search
+azure-search-documents>=11.4.0
+azure-core>=1.26.0
+azure-identity>=1.12.0
+
+# Azure Blob Storage
+azure-storage-blob>=12.16.0
+
+# Document generation
+python-docx>=0.8.11
+
+# Error handling and resilience
+tenacity>=8.2.2
+
+# Utilities
+python-dateutil>=2.8.2
+pytz>=2023.3

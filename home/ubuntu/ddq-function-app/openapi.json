@@ -1,0 +1,211 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "DDQ Chat Azure Function",
+    "version": "1.0.0",
+    "description": "API for processing Due Diligence Questionnaire (DDQ) questions using OpenAI and Azure AI Search"
+  },
+  "servers": [
+    {
+      "url": "https://{functionAppName}.azurewebsites.net/api",
+      "description": "Azure Function App endpoint",
+      "variables": {
+        "functionAppName": {
+          "default": "ddq-function-app",
+          "description": "The name of your deployed Azure Function app"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/DdqChatFunction": {
+      "post": {
+        "summary": "Process a DDQ question",
+        "description": "Processes a DDQ question by searching for relevant information using Azure AI Search, generating an answer with OpenAI, and creating a DOCX document with the response.",
+        "operationId": "processQuestion",
+        "security": [
+          {
+            "apiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "description": "The DDQ question to process",
+                    "example": "What is the fund's ESG policy?"
+                  },
+                  "history": {
+                    "type": "array",
+                    "description": "Optional conversation history for context",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": ["system", "user", "assistant"],
+                          "description": "The role of the message sender"
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "The content of the message"
+                        }
+                      },
+                      "required": ["role", "content"]
+                    }
+                  },
+                  "template": {
+                    "type": "string",
+                    "description": "Optional document template name to use (without file extension)"
+                  }
+                },
+                "required": ["prompt"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ai_response": {
+                      "type": "string",
+                      "description": "The AI-generated answer to the DDQ question"
+                    },
+                    "document_url": {
+                      "type": "string",
+                      "description": "URL to the generated DOCX document in Azure Blob Storage",
+                      "format": "uri"
+                    },
+                    "sources": {
+                      "type": "array",
+                      "description": "List of source documents used to generate the answer",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "description": "Unique identifier for the request (for tracking and debugging)"
+                    },
+                    "processing_time_ms": {
+                      "type": "integer",
+                      "description": "Processing time in milliseconds"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message describing the validation failure"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error: An unexpected error occurred."
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error: Search service unavailable."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/DdqChatFunction/templates": {
+      "get": {
+        "summary": "List available document templates",
+        "description": "Returns a list of available document templates that can be used when processing DDQ questions",
+        "operationId": "listTemplates",
+        "security": [
+          {
+            "apiKeyHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "description": "List of available template names (without file extensions)",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyHeader": {
+        "type": "apiKey",
+        "name": "x-api-key",
+        "in": "header",
+        "description": "API key for authorization (if configured)"
+      }
+    }
+  }
+}
