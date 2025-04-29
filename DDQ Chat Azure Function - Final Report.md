@@ -1,155 +1,65 @@
-# DDQ Chat Azure Function - Final Report
+# DDQ Chat Azure Function - Technical Overview
 
-## Project Overview
+## 1. Purpose
 
-This project delivers an Azure Function that processes Due Diligence Questionnaire (DDQ) questions using Azure OpenAI, Azure AI Search, and Azure Blob Storage. The function is designed to be triggered by a custom GPT, providing accurate answers based on the organization's documents and returning both a brief response and a link to a generated DOCX document.
+This Azure Functions application provides a serverless API endpoint for answering Due Diligence Questionnaire (DDQ) questions. It leverages OpenAI for natural language generation, Azure AI Search for retrieving relevant information from indexed corporate documents, and Azure Blob Storage for storing generated response documents.
 
-## Key Features Implemented
+## 2. Architecture
 
-1. **HTTP-Triggered Azure Function**
-   - Anonymous authentication for public access by the custom GPT
-   - JSON request/response format for seamless integration
-   - Robust error handling and logging
+The core workflow is initiated by an HTTP POST request to the function endpoint:
 
-2. **Azure OpenAI Integration**
-   - Connected to the specified endpoint: `https://bfija-m83d9xpw-eastus2.services.ai.azure.com/models`
-   - Using the specified model: `o4-mini-custom-gpt`
-   - Implemented with DefaultAzureCredential for secure authentication
+```
+(Client / Custom GPT) ──► HTTP POST Request ──► Azure Function (Python)
+                                                │
+                                                ├─► Azure AI Search (Semantic Search) ──► (Document Index)
+                                                │
+                                                ├─► OpenAI (GPT Model) ──► (Answer Generation)
+                                                │
+                                                └─► Azure Blob Storage ──► (Generated DOCX Upload)
+                                                │
+                                                ◄── JSON Response (Answer + DOCX URL) ◄──┘
+```
 
-3. **Azure AI Search Integration**
-   - Semantic search capabilities for better relevance
-   - Extraction of content snippets and source metadata
-   - Configurable result count and filtering
+## 3. Key Components
 
-4. **Document Generation**
-   - Professional DOCX document creation using python-docx
-   - Structured format with question, answer, and sources sections
-   - Automatic upload to Azure Blob Storage
+The application is structured as follows:
 
-5. **System Prompt**
-   - Tailored instructions for the AI model
-   - Guidelines for source citation and verbatim answers
-   - Context-specific examples and workflow explanation
+*   **`DdqChatFunction/`**: Contains the main Azure Function trigger (`function.json`) and the core request processing logic (`__init__.py`).
+    *   Handles request validation, service orchestration, error handling, and response formatting.
+    *   Supports optional API key authentication (`x-api-key` header).
+*   **`shared_code/`**: Houses reusable modules for interacting with Azure services:
+    *   `openai_service.py`: Interfaces with the OpenAI API (Chat Completion). Includes basic retry logic.
+    *   `search_service.py`: Queries the configured Azure AI Search index using semantic search.
+    *   `blob_storage_service.py`: Manages interactions with Azure Blob Storage (uploading generated documents).
+    *   `document_generator.py`: Creates a `.docx` file containing the question, AI-generated answer, and cited sources using `python-docx`, then uploads it via `blob_storage_service`.
+*   **`templates/`**: Contains `.docx` templates (e.g., `standard.docx`) that can be optionally specified in the request to format the generated response document.
+*   **`system_prompt.txt`**: Defines the base instructions provided to the OpenAI model to guide its response generation, emphasizing grounding in provided search results.
+*   **Configuration Files**:
+    *   `requirements.txt`: Lists Python package dependencies.
+    *   `host.json`: Configures the Azure Functions host runtime.
+    *   `local.settings.json`: Template for local development environment variables (requires user configuration).
+    *   `openapi.json`: OpenAPI 3.0 specification describing the function's API contract.
+*   **`README.md`**: Provides setup, configuration, and usage instructions.
 
-## Project Structure
+## 4. Core Functionality
 
-The project is organized into the following components:
+*   **Document-Grounded QA**: Answers are synthesized by OpenAI based on context retrieved from Azure AI Search, ensuring responses are tied to source material.
+*   **Hybrid Search**: Leverages Azure AI Search's semantic search capabilities for relevance.
+*   **Automatic Source Citation**: Identifies and lists the source documents used by Azure AI Search.
+*   **Dynamic DOCX Generation**: Optionally generates a formatted Word document containing the question, answer, and sources, storing it in Azure Blob Storage and returning a URL.
+*   **Telemetry Hooks**: Includes logging throughout the request lifecycle, suitable for integration with Application Insights.
 
-### Azure Function
-- `DdqChatFunction/__init__.py` - Main function code
-- `DdqChatFunction/function.json` - HTTP trigger configuration
+## 5. Deployment & Configuration
 
-### Shared Code Modules
-- `shared_code/openai_service.py` - Azure OpenAI integration
-- `shared_code/search_service.py` - Azure AI Search integration
-- `shared_code/blob_storage_service.py` - Azure Blob Storage integration
-- `shared_code/document_generator.py` - DOCX document creation
+Refer to the `README.md` for detailed instructions on:
+*   Setting up the required Azure resources (Azure Functions App, AI Search, Blob Storage) and obtaining an OpenAI API Key.
+*   Configuring necessary environment variables (API keys, service names, endpoints).
+*   Deploying the function code to Azure.
 
-### Configuration
-- `host.json` - Function host configuration
-- `local.settings.json` - Environment variables and settings
-- `system_prompt.txt` - Instructions for the AI model
+## 6. API Contract
 
-### Documentation
-- `documentation/deployment_guide.md` - Instructions for Azure deployment
-- `documentation/security_guide.md` - Security implementation details
-- `documentation/implementation_guide.md` - Code structure and workflow explanation
+See `openapi.json` for the detailed API specification. The primary endpoint is:
 
-## Workflow
-
-1. The custom GPT sends an HTTP POST request to the Azure Function with a JSON body containing the DDQ question.
-2. The function searches for relevant content using Azure AI Search.
-3. The function sends the question and search results to Azure OpenAI to generate an answer.
-4. The function creates a DOCX document with the question, answer, and sources.
-5. The function uploads the document to Azure Blob Storage.
-6. The function returns a JSON response with the answer text, document URL, and sources.
-
-## Implementation Details
-
-### Azure Function Configuration
-
-The function is configured with anonymous authentication as requested, making it publicly accessible for the custom GPT. It accepts HTTP POST requests and returns JSON responses.
-
-### Azure OpenAI Integration
-
-The OpenAI service is implemented to use the specified endpoint and model. It uses DefaultAzureCredential for authentication, which supports Managed Identity when deployed to Azure.
-
-### Azure AI Search Integration
-
-The search service is implemented to find relevant document snippets based on the DDQ question. It supports semantic search for better relevance and extracts content and metadata from the search results.
-
-### Document Generation
-
-The document generator creates professionally formatted DOCX files with sections for the question, answer, and sources. It uses the python-docx library and uploads the documents to Azure Blob Storage.
-
-### System Prompt
-
-The system prompt provides detailed instructions to the AI model on how to process DDQ questions. It emphasizes using only the provided context, citing sources, and maintaining a professional tone.
-
-## Security Considerations
-
-The security guide provides detailed recommendations for securing the Azure Function and its dependencies:
-
-1. **Authentication and Authorization**
-   - Function access control options
-   - Azure service authentication using Managed Identity
-
-2. **Data Protection**
-   - Data in transit (HTTPS)
-   - Data at rest (Blob Storage encryption)
-   - Sensitive information handling
-
-3. **Monitoring and Logging**
-   - Application Insights integration
-   - Log sanitization and retention
-
-4. **Network Security**
-   - Virtual Network integration options
-   - Private Endpoints for Azure services
-
-5. **Custom GPT Integration Security**
-   - Request validation
-   - Response security
-
-## Deployment Instructions
-
-The deployment guide provides step-by-step instructions for deploying the Azure Function to Azure:
-
-1. **Prerequisites**
-   - Azure account and required resources
-   - Azure CLI or VS Code with Azure Functions extension
-
-2. **Preparation**
-   - Generating requirements.txt
-   - Reviewing configuration settings
-
-3. **Deployment Methods**
-   - Zip deployment (CLI)
-   - Visual Studio Code extension
-
-4. **Configuration**
-   - Setting up Application Settings
-   - Configuring Managed Identity
-
-5. **Verification**
-   - Testing the deployed function
-   - Monitoring logs
-
-## Next Steps
-
-To fully operationalize this solution:
-
-1. **Deploy to Azure** following the deployment guide
-2. **Configure environment variables** with actual service credentials
-3. **Set up Azure AI Search** to index the provided documents (PPMs, ESG reports, etc.)
-4. **Test with actual DDQ questions** to verify functionality
-5. **Integrate with the custom GPT** by providing the function URL
-6. **Implement monitoring** for performance and usage tracking
-
-## Conclusion
-
-This Azure Function provides a serverless solution for processing DDQ questions using Azure OpenAI and Azure AI Search. It delivers accurate, source-cited answers in both text format and as professionally formatted DOCX documents. The solution is designed to be easily deployed to Azure and integrated with a custom GPT.
-
-The comprehensive documentation provides all the information needed to understand, deploy, and secure the solution. The modular code structure makes it easy to maintain and extend the functionality as needed.
-
-All deliverables have been packaged in the `ddq_function_app_deliverables.zip` file for easy access and deployment.
+*   **`POST /api/ddq-chat`** (or as defined in `function.json` and `host.json`)
+    *   **Request Body**: JSON object containing `prompt` (string, required), `history` (array, optional), and `template` (string, optional).
+    *   **Response Body**: JSON object containing `ai_response`, `sources`, `document_url`, `request_id`, and `processing_time_ms`.

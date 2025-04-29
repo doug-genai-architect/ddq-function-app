@@ -1,6 +1,6 @@
 # DDQ GPT Azure Function App
 
-An **Azure Functions** application that leverages **Azure OpenAI**, **Azure Cognitive Search**, and **Azure Blob Storage** to provide document-driven question-and-answer (DDQ) capabilities.  The function ingests corporate documents, indexes them for semantic search, and delivers grounded, reference-backed answers through a simple REST endpoint.
+An **Azure Functions** application that leverages **OpenAI**, **Azure Cognitive Search**, and **Azure Blob Storage** to provide document-driven question-and-answer (DDQ) capabilities.  The function ingests corporate documents, indexes them for semantic search, and delivers grounded, reference-backed answers through a simple REST endpoint.
 
 ---
 
@@ -10,7 +10,7 @@ An **Azure Functions** application that leverages **Azure OpenAI**, **Azure Cogn
 | ----------- | ----------- |
 | 📚 Document-Grounded QA | Answers are generated using enterprise documents retrieved from Azure Cognitive Search, ensuring responses are verifiable and relevant. |
 | 🔍 Hybrid Search | Combines vector and keyword search for high-precision context retrieval. |
-| 🧠 OpenAI Integration | Uses Azure OpenAI Chat Completion API (GPT) to create concise, context-aware answers. |
+| 🧠 OpenAI Integration | Uses OpenAI Chat Completion API (GPT) to create concise, context-aware answers. |
 | 📝 Automatic Source Citations | Each answer includes the document sources and snippets that were used to build the response. |
 | 📄 Dynamic DOCX Generation | Optionally generates a well-formatted Word document containing the answer and citations, stored in Azure Blob Storage. |
 | 🛡️ Production-Grade Telemetry | Extensive logging and metric collection hooks are included for Application Insights or any observability platform. |
@@ -24,7 +24,7 @@ An **Azure Functions** application that leverages **Azure OpenAI**, **Azure Cogn
                                 │
                                 ├─► Azure Cognitive Search ──► (Document Index)
                                 │
-                                ├─► Azure OpenAI (Chat Completion)
+                                ├─► OpenAI (Chat Completion)
                                 │
                                 └─► Azure Blob Storage (Generated Docs)
 ```
@@ -47,7 +47,9 @@ Populate **local.settings.json** or environment variables with the following key
 
 | Variable | Purpose |
 | -------- | ------- |
-| `OPENAI_API_KEY` | Azure OpenAI key or an AAD-token flow. |
+| `OPENAI_API_KEY` | Your OpenAI API key. |
+| `OPENAI_MODEL` | (Optional) OpenAI model to use (e.g., `gpt-4o`). Defaults to `gpt-4o`. |
+| `OPENAI_ORGANIZATION` | (Optional) Your OpenAI organization ID. |
 | `AZURE_SEARCH_SERVICE_NAME` | Name of the Cognitive Search service. |
 | `AZURE_SEARCH_INDEX_NAME` | Target index containing your documents. |
 | `AZURE_SEARCH_API_KEY` | Admin/query key for search. |
@@ -81,7 +83,7 @@ curl -X POST http://localhost:7071/api/ddq-chat \
 1. **Create Resources**
    * Azure Storage Account & Container
    * Azure Cognitive Search + Index (vector-enabled)
-   * Azure OpenAI resource & model deployment
+   * OpenAI API Key (obtain from OpenAI)
 2. **Publish Function App**
    ```bash
    func azure functionapp publish <YOUR_FUNCTION_APP_NAME> --python
